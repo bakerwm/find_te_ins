@@ -48,7 +48,7 @@ function get_raw_ins() {
     local out_bed="${out_dir}/${fname}.raw_ins.bed"
     [[ ! -d ${out_dir} ]] && mkdir -p ${out_dir}
     # run
-    python scripts/extract_INS/extract_ins.py ${bam} > ${out_bed}
+    python ${src_dir}/extract_ins.py ${bam} > ${out_bed}
     echo ${out_bed}
 }
 export get_raw_ins
