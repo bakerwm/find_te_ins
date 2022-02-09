@@ -4,11 +4,10 @@
 # extract TE insertions using long reads, with minimap2
 #
 # global vars
-# src_dir="/data/yulab/wangming/work/yu_2021/piwi_lxh/results/20220123_ONT_TE_insertion/scripts/find_te_ins/"
 export src_dir=$(dirname $(realpath $0))
 ## change the following paths
-export genome_fa="/data/yulab/wangming/data/genome/dm6/bigZips/dm6.fa"  # reference genome
-export te_fa="/data/yulab/wangming/data/genome/dm6/dm6_transposon/dm6_transposon.fa" # transposon consensus sequence
+export genome_fa="/data/biodata/genome/dm6/bigZips/dm6.fa"  # reference genome
+export te_fa="/data/biodata/genome/dm6/dm6_transposon/dm6_transposon.fa" # transposon consensus sequence
 export threads=4
 ################################################################################
 
@@ -29,7 +28,6 @@ function align() {
     fname=${fname/.correctedReads.fasta.gz} #
     local bam="${out_dir}/${fname}.bam"
     local log="${out_dir}/run_minimap2.${ref_name}.stderr"
-    # local ref_fa="/data/yulab/wangming/data/genome/dm6/bigZips/dm6.fa"
     [[ ! -d ${out_dir} ]] && mkdir -p ${out_dir}
     [[ ! -f ${bam} ]] && minimap2 -t 12 -ax map-ont ${ref_fa} ${fq} 2> ${log} | samtools view -bhS - | samtools sort -o ${bam} - && samtools index ${bam}
     echo $bam
@@ -75,7 +73,7 @@ function get_ins() {
     
     ## 1. align to reference genome
     echo "[1/9] align to reference genome"
-    # local genome_fa=  # see global variables
+    # local genome_fa="/data/biodata/genome/dm6/bigZips/dm6.fa"  # see global variables
     bam=$(align ${fq} ${prj_dir} ${genome_fa})
     
     ## 2. extract raw insertions
@@ -95,6 +93,7 @@ function get_ins() {
     
     ## 5. add te name to insertion
     echo "[5/9] extract transposon name for insertions"
+    # local te_fa="/data/biodata/genome/dm6/dm6_transposon/dm6_transposon.fa" # see global variables
     local te_fa_fai=${te_fa}.fai
     local te_ins_txt="${prj_dir}/${fname}.te_ins.raw.txt"
     [[ ! -f ${te_ins_txt} ]] && python ${src_dir}/anno_te.py -x ${te_fa_fai} ${te_bam} | sort -k4,4 -k5,5n > ${te_ins_txt}
