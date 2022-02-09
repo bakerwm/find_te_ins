@@ -5,10 +5,11 @@
 #
 # global vars
 # src_dir="/data/yulab/wangming/work/yu_2021/piwi_lxh/results/20220123_ONT_TE_insertion/scripts/find_te_ins/"
-src_dir=$(dirname $(realpath $0))
+export src_dir=$(dirname $(realpath $0))
 ## change the following paths
-genome_fa="/data/yulab/wangming/data/genome/dm6/bigZips/dm6.fa"  # reference genome
-te_fa="/data/yulab/wangming/data/genome/dm6/dm6_transposon/dm6_transposon.fa" # transposon consensus sequence
+export genome_fa="/data/yulab/wangming/data/genome/dm6/bigZips/dm6.fa"  # reference genome
+export te_fa="/data/yulab/wangming/data/genome/dm6/dm6_transposon/dm6_transposon.fa" # transposon consensus sequence
+export threads=4
 ################################################################################
 
 
@@ -33,6 +34,7 @@ function align() {
     [[ ! -f ${bam} ]] && minimap2 -t 12 -ax map-ont ${ref_fa} ${fq} 2> ${log} | samtools view -bhS - | samtools sort -o ${bam} - && samtools index ${bam}
     echo $bam
 }
+export -f align
 
 
 ################################################################################
@@ -49,7 +51,7 @@ function get_raw_ins() {
     python scripts/extract_INS/extract_ins.py ${bam} > ${out_bed}
     echo ${out_bed}
 }
-
+export get_raw_ins
 
 ################################################################################
 # 04.annotation of ins (te names)
@@ -123,6 +125,7 @@ function get_ins() {
     ## 10. Done
     echo "[9/9] Done!"
 }
+export -f get_ins
 
 
 ## run
@@ -130,10 +133,28 @@ function get_ins() {
 fq_dir=$(realpath $1)
 out_dir=$(realpath $2)
 
-for fq in ${fq_dir}/*f[aq]
-do 
-    [[ ! -f ${fq} ]] && continue || echo $(basename ${fq})
-    get_ins ${fq} ${out_dir}
+## gather all fasta/q files
+fq_list=()
+for fq in ${fq_dir}/*f[aq] ${fq_dir}/*f[aq].gz ${fq_dir}/*fast[aq] ${fq_dir}/*fast[aq].gz
+do
+    [[ ! -f ${fq} ]] && continue # || echo $(basename ${fq})
+    fq_list+=("$fq")
 done
+   
+## check
+[[ ${#fq_list[@]} -lt 1 ]] && echo "no fa/q files found in: [${fq_dir}]" && exit 1
+
+## run in parallel
+parallel --jobs ${threads} get_ins {} ${out_dir} ::: ${fq_list[@]}
+
+## alternative, run in parallel
+# pids=()
+# do 
+#     [[ ! -f ${fq} ]] && continue || echo $(basename ${fq})
+#     log="mylog.$(basename ${fq}).out"
+#     get_ins ${fq} ${out_dir} &>${log} &
+#     pids+=("$!")
+# done
+# wait ${pids[@]}
 
 ## 
